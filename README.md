@@ -50,7 +50,7 @@ This project has enhanced item data management, overlay improvements, and variou
    - Target filter (employee, dissident, all)
    - Dynamic FOV
    - Smoothing
-   - **Item/Weapon Hotkeys**
+- **Item/Weapon Hotkeys**
    - Use a combination of keys to set an item/weapon in hand or spam drop that item/weapon.
 - **Default Hotkeys:**
    - `F1` : Open/Close Menu
