@@ -78,7 +78,7 @@ This project has enhanced item data management, overlay improvements, and variou
 ## Setup and Usage
 1. **Clone the Repository**:
    ```bash
-   git clone (https://github.com/BuddyOG-coder/jesterProtocol.git)
+   git clone https://github.com/BuddyOG-coder/jesterProtocol.git
    cd lockdown-protocol-external
    ```
 
