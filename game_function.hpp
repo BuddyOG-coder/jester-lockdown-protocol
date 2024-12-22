@@ -22,8 +22,18 @@ inline std::unordered_map<std::string, std::string> item_class_map = {
 	{"RIFLE", "DA_Rifle"},
 	{"DETONATOR", "DA_Detonator"},
 	{"C4", "DA_C4"},
-	{"FISH", "DA_Fish"},
-	{"PIZZUSHI", "DA_Pizzushi"}
+	{"KNIFE", "DA_Knife"},
+	{"FUSE", "DA_Fuse"},
+	{"BATTERY", "DA_Battery"},
+	{"GAZ BOTTLE", "DA_GazBottle"}, // Updated to match fallback
+	{"VENT", "DA_Vent"},
+	{"SCREW DRIVER", "DA_ScrewDriver"}, // Updated to match fallback
+	{"CONTAINER", "DA_Container"},
+	{"PIZZUSHI", "DA_Pizzushi"},
+	{"CASSETTE", "DA_Cassette"}, // Updated to match fallback
+	{"SAMPLE", "DA_Sample"},
+	{"RICE", "DA_Rice"},
+	{"PACKAGE", "DA_Package"}
 };
 
 std::vector<uintptr_t> find_objects(const std::string& name_find);
@@ -86,79 +96,91 @@ inline std::vector<uintptr_t> find_objects(const std::string& name_find) {
 }
 
 // Assign item data
+// Assign item data
 inline u_data_item* AssignToItemData(const std::string& target_name) {
+	// Debugging: Log the target name
+	std::cout << "AssignToItemData called with: " << target_name << std::endl;
+
 	// Convert target_name to uppercase
 	std::string upper_name = ToUpperCase(target_name);
-	
+	std::cout << "Converted name to uppercase: " << upper_name << std::endl;
+
+	// Check if the name exists in item_class_map
 	if (item_class_map.find(upper_name) == item_class_map.end()) {
+		std::cerr << "Error: Item class not found for: " << upper_name << std::endl;
 		return nullptr;
 	}
 
+	// Map the name
 	std::string mapped_name = item_class_map[upper_name];
+	std::cout << "Mapped name: " << mapped_name << std::endl;
+
+	// Find objects
 	std::vector<uintptr_t> found_objects = find_objects(mapped_name);
+	std::cout << "Found " << found_objects.size() << " objects for: " << mapped_name << std::endl;
 
 	// Fallback for KNIFE or ambiguous matches
 	if (found_objects.empty() && upper_name == "KNIFE") {
+		std::cout << "No objects found. Attempting fallback for KNIFE." << std::endl;
 		found_objects = find_objects("Knife");
+		std::cout << "Fallback for KNIFE found " << found_objects.size() << " objects." << std::endl;
 	}
 
 	if (upper_name == "DETONATOR") {
-		found_objects = find_objects("Detonator");  // Explicit fallback for Detonator
+		std::cout << "Explicit fallback for DETONATOR." << std::endl;
+		found_objects = find_objects("Detonator");
 	}
 
 	if (upper_name == "C4") {
-		found_objects = find_objects("C4");  // Explicit fallback for C4
+		std::cout << "Explicit fallback for C4." << std::endl;
+		found_objects = find_objects("C4");
 	}
 
-	if (upper_name == "FISH") {
-		found_objects = find_objects("Fish");  // Explicit fallback for fish
-	}
 
-	if (upper_name == "PIZZUSHI") {
-		found_objects = find_objects("Pizzushi");  // Explicit fallback for fish
-	}
-
+	// Check if objects are still empty
 	if (found_objects.empty()) {
+		std::cerr << "Error: No objects found for: " << mapped_name << std::endl;
 		return nullptr;
 	}
 
+
+
+	// Select a valid object
 	uintptr_t selected_object = 0;
 	for (uintptr_t obj_addr : found_objects) {
 		auto obj = reinterpret_cast<u_object*>(obj_addr);
 		std::string obj_name = util::get_name_from_fname(obj->fname_index());
 		std::string class_name = util::get_name_from_fname(obj->class_private()->fname_index());
 
+		// Debug object name and class
+		std::cout << "Found object: " << obj_name << ", class: " << class_name << std::endl;
+
+		// Match all special items
 		if (obj_name.find(mapped_name) != std::string::npos) {
 			if ((upper_name == "KNIFE" && is_a(obj_addr, "Data_Melee_C")) ||
-				(is_a(obj_addr, "Data_Gun_C") && upper_name != "KNIFE")) {
+				(upper_name == "DETONATOR" && is_a(obj_addr, "Data_Melee_C")) ||
+				(upper_name == "C4" && is_a(obj_addr, "Data_Melee_C")) ||
+				(upper_name == "FUSE" && is_a(obj_addr, "Data_Melee_C")) ||
+				(upper_name == "BATTERY" && is_a(obj_addr, "Data_Item_C")) ||
+				(upper_name == "GAZ BOTTLE" && is_a(obj_addr, "Data_Item_C")) ||
+				(upper_name == "VENT" && is_a(obj_addr, "Data_Item_C")) ||
+				(upper_name == "SCREW DRIVER" && is_a(obj_addr, "Data_Item_C")) ||
+				(upper_name == "CONTAINER" && is_a(obj_addr, "Data_Item_C")) ||
+				(upper_name == "PIZZUSHI" && is_a(obj_addr, "Data_Item_C")) ||
+				(upper_name == "SAMPLE" && is_a(obj_addr, "Data_Item_C")) ||
+				(upper_name == "RICE" && is_a(obj_addr, "Data_Item_C")) ||
+				(upper_name == "PACKAGE" && is_a(obj_addr, "Data_Item_C")) ||
+				(upper_name == "SHORTY" && is_a(obj_addr, "Data_Gun_C")) ||
+				(upper_name == "REVOLVER" && is_a(obj_addr, "Data_Gun_C")) ||
+				(upper_name == "PISTOL" && is_a(obj_addr, "Data_Gun_C")) ||
+				(upper_name == "SHOTGUN" && is_a(obj_addr, "Data_Gun_C")) ||
+				(upper_name == "SMG" && is_a(obj_addr, "Data_Gun_C")) ||
+				(upper_name == "RIFLE" && is_a(obj_addr, "Data_Gun_C"))) {
 				selected_object = obj_addr;
 				break; // Stop searching once a valid match is found
 			}
 		}
-
-		if ((upper_name == "DETONATOR" && is_a(obj_addr, "Data_Melee_C")) ||
-			(is_a(obj_addr, "Data_Gun_C") && upper_name != "DETONATOR")) {
-			selected_object = obj_addr;
-			break; // Stop searching once a valid match is found
-		}
-
-		if ((upper_name == "C4" && is_a(obj_addr, "Data_Melee_C")) ||
-			(is_a(obj_addr, "Data_Gun_C") && upper_name != "C4")) {
-			selected_object = obj_addr;
-			break; // Stop searching once a valid match is found
-		}
-
-		if ((upper_name == "FISH" && is_a(obj_addr, "Data_Melee_C")) ||
-			(is_a(obj_addr, "Data_Gun_C") && upper_name != "FISH")) {
-			selected_object = obj_addr;
-			break; // Stop searching once a valid match is found
-		}
-
-		if ((upper_name == "PIZZUSHI" && is_a(obj_addr, "Data_Melee_C")) ||
-			(is_a(obj_addr, "Data_Gun_C") && upper_name != "PIZZUSHI")) {
-			selected_object = obj_addr;
-			break; // Stop searching once a valid match is found
-		}
+		// Hotkeys made by Jester
 	}
 
 	if (selected_object != 0) {

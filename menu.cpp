@@ -93,7 +93,7 @@ void menu::draw()
 
 		ImGui::SetNextWindowPos(startPosition, true ? ImGuiCond_Once : ImGuiCond_Always);
 
-		ImGui::Begin("Hawk Tuah Protocol - Oni Edition v3.2");
+		ImGui::Begin("Jester v3.2 UNRELEASED");
 
 		auto cursor_position = util::cursor_position();
 		ImGui::GetForegroundDrawList()->AddCircleFilled(ImVec2(cursor_position.x, cursor_position.y), 5.f, IM_COL32(255, 255, 255, 255));
@@ -112,6 +112,7 @@ void menu::draw()
 		if (ImGui::Selectable("WEAPON", selected_tab == 3)) selected_tab = 3;
 		if (ImGui::Selectable("ITEMS", selected_tab == 4)) selected_tab = 4;
 		if (ImGui::Selectable("AIMBOT", selected_tab == 5)) selected_tab = 5;
+		if (ImGui::Selectable("HOTKEYS", selected_tab == 6)) selected_tab = 6;
 		ImGui::Separator();
 		ImGui::Text("SETTINGS");
 		if (ImGui::Button("Save")) {
@@ -1457,6 +1458,74 @@ void menu::draw()
 				//calculatedHeight += itemHeight * 6;
 			}
 		}
+
+		if (selected_tab == 6) {
+			// Calculate the height of the HOTKEYS tab content
+			calculatedHeight += itemHeight * 12; // Adjust multiplier based on total content
+
+			// Set the height and width of the tab window
+			ImGui::SetWindowSize(ImVec2(ImGui::GetContentRegionAvail().x, calculatedHeight), ImGuiCond_Always);
+
+			// Start the HOTKEYS tab content area
+			ImGui::BeginChild("HOTKEYS_TabContent", ImVec2(0, 0), true);
+
+			// Weapons Hotkeys Section
+			if (ImGui::CollapsingHeader("WEAPONS HOTKEYS", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::Text("Shift + 1: Equip REVOLVER");
+				ImGui::Text("Shift + 2: Equip SHORTY");
+				ImGui::Text("Shift + 3: Equip PISTOL");
+				ImGui::Text("Shift + 4: Equip RIFLE");
+				ImGui::Text("Shift + 5: Equip SHOTGUN");
+				ImGui::Text("Shift + 6: Equip SMG");
+				calculatedHeight += itemHeight * 6;
+			}
+
+			// Items Hotkeys Section
+			if (ImGui::CollapsingHeader("ITEMS HOTKEYS", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::Text("Shift + K: Equip KNIFE");
+				ImGui::Text("Shift + B: Equip C4");
+				ImGui::Text("Shift + N: Equip DETONATOR");
+				ImGui::Text("Shift + L: Equip FUSE");
+				ImGui::Text("Shift + J: Equip BATTERY");
+				ImGui::Text("Shift + G: Equip GAZ BOTTLE");
+				ImGui::Text("Shift + V: Equip VENT");
+				ImGui::Text("Shift + Y: Equip SCREW DRIVER");
+				ImGui::Text("Shift + C: Equip CONTAINER");
+				ImGui::Text("Shift + P: Equip PIZZUSHI");
+				ImGui::Text("Shift + 7: Equip SAMPLE");
+				ImGui::Text("Shift + 8: Equip RICE");
+				ImGui::Text("Shift + 9: Equip PACKAGE");
+				calculatedHeight += itemHeight * 13;
+			}
+
+			// Spam Drop Hotkeys Section
+			if (ImGui::CollapsingHeader("SPAM DROP HOTKEYS", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::Separator();
+				ImGui::TextWrapped("Make sure to toggle the 'SPAM DROP' off before enabling another");
+				ImGui::Separator();
+				ImGui::Text("CTRL + K: Drop KNIFE");
+				ImGui::Text("CTRL + B: Drop C4");
+				ImGui::Text("CTRL + N: Drop DETONATOR");
+				ImGui::Text("CTRL + L: Drop FUSE");
+				ImGui::Text("CTRL + J: Drop BATTERY");
+				ImGui::Text("CTRL + G: Drop GAZ BOTTLE");
+				ImGui::Text("CTRL + 1: Drop REVOLVER");
+				ImGui::Text("CTRL + 2: Drop SHORTY");
+				ImGui::Text("CTRL + 3: Drop PISTOL");
+				ImGui::Text("CTRL + 4: Drop RIFLE");
+				ImGui::Text("CTRL + 5: Drop SHOTGUN");
+				ImGui::Text("CTRL + 6: Drop SMG");
+				ImGui::Text("CTRL + 7: Drop SAMPLE");
+				ImGui::Text("CTRL + 8: Drop RICE");
+				ImGui::Text("CTRL + 9: Drop PACKAGE");
+				calculatedHeight += itemHeight * 4;
+			}
+
+			ImGui::EndChild(); // End the HOTKEYS_TabContent area
+		}
+
+		// Hotkeys made by Jester
+
 		ImGui::EndChild();
 
 		//ImGui::SetWindowSize(ImVec2(-1, calculatedHeight));

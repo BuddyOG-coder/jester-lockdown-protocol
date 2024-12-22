@@ -24,6 +24,7 @@
     <ProjectGuid>{1f226c0f-c746-42a0-8fe5-efa78b5d4901}</ProjectGuid>
     <RootNamespace>protocol</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>jester</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

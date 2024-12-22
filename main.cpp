@@ -92,6 +92,104 @@ double CalculateDistanceMeters(const vector3& location1, const vector3& location
 	return std::sqrt(dx * dx + dy * dy + dz * dz) / 100.0;
 }
 
+void SetItemInHand(const std::string& name) {
+	auto item_data = AssignToItemData(name); // Use the helper function
+	if (item_data) {
+		local_mec->set_hand_item(item_data); // Assign the item to the player's hand
+		std::cout << "Successfully set item in hand: " << name << std::endl;
+	}
+	else {
+		std::cerr << "Failed to set item in hand: " << name << std::endl;
+	}
+}
+
+void dropItem() {
+	Sleep(1); // Optional: Slight delay before starting (shortened)
+	mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0); // Hold right click
+	Sleep(1);  // Reduced delay to simulate holding right-click
+	mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);  // Press left click
+	Sleep(1);  // Reduced delay to ensure the press registers
+	mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);    // Release left click
+	Sleep(1);  // Shortened delay to ensure action completes
+	mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);   // Release right click
+}
+
+void SpamDropWeapon(const std::string& weapon_name) {
+	static std::unordered_map<std::string, std::thread> active_threads; // Map to track threads per item
+	static std::unordered_map<std::string, bool> active_spam_states;   // Map to track spam states per item
+
+	// Check if the weapon_name is already spamming
+	if (active_spam_states[weapon_name]) {
+		// Toggle off: Stop the spam and clean up the thread
+		active_spam_states[weapon_name] = false;
+
+		if (active_threads[weapon_name].joinable()) {
+			active_threads[weapon_name].join();
+		}
+
+		active_threads.erase(weapon_name); // Remove thread from map
+		std::cout << "Stopped spamming: " << weapon_name << std::endl;
+		return;
+	}
+
+	// Toggle on: Start a new thread for spamming
+	active_spam_states[weapon_name] = true;
+	active_threads[weapon_name] = std::thread([weapon_name]() {
+		while (active_spam_states[weapon_name]) {
+			SetItemInHand(weapon_name); // Equip the item
+			dropItem();                 // Drop the item
+			std::this_thread::sleep_for(std::chrono::milliseconds(5)); // Adjustable delay
+		}
+		});
+
+	std::cout << "Started spamming: " << weapon_name << std::endl;
+}
+
+static bool is_spam_active = false; // Keeps track of spam toggle state
+
+void HandleHotkeys() {
+	static std::map<int, bool> last_hotkey_states; // Tracks hotkey states
+	static const std::string weapon_names[9] = {
+		"REVOLVER", "SHORTY", "PISTOL", "RIFLE", "SHOTGUN", "SMG",
+		"SAMPLE", "RICE", "PACKAGE"
+	};
+
+	// Key mappings for CTRL + hotkeys
+	static const std::map<int, std::string> ctrl_hotkeys = {
+		{ 'K', "KNIFE" }, { 'B', "C4" }, { 'N', "DETONATOR" },
+		{ 'L', "FUSE" }, { 'J', "BATTERY" }, { 'G', "GAZ BOTTLE" },
+		{ 'V', "VENT" }, { 'Y', "SCREW DRIVER" }, { 'C', "CONTAINER" },
+		{ 'P', "PIZZUSHI" }
+	};
+
+	// Cache CTRL state
+	bool ctrl_pressed = (GetAsyncKeyState(VK_CONTROL) & 0x8000);
+
+	// Handle CTRL + (1-9) hotkeys for guns and items
+	for (int i = 0; i < 9; ++i) { // Adjust loop to cover 1–9 (keys 1–9)
+		bool current_hotkey_state = ctrl_pressed && (GetAsyncKeyState('1' + i) & 0x8000);
+
+		if (current_hotkey_state && !last_hotkey_states['1' + i]) {
+			SpamDropWeapon(weapon_names[i]); // Toggle spam for the weapon or item
+			std::cout << "[Hotkey] CTRL + " << (i + 1) << " pressed. Toggling spam for " << weapon_names[i] << "." << std::endl;
+		}
+
+		last_hotkey_states['1' + i] = current_hotkey_state;
+	}
+
+	// Handle CTRL + item hotkeys (e.g., KNIFE, C4)
+	for (const auto& [key, item] : ctrl_hotkeys) {
+		bool current_hotkey_state = ctrl_pressed && (GetAsyncKeyState(key) & 0x8000);
+
+		if (current_hotkey_state && !last_hotkey_states[key]) {
+			SpamDropWeapon(item); // Toggle spam for the item
+			std::cout << "[Hotkey] CTRL + " << static_cast<char>(key) << " pressed. Toggling spam for " << item << "." << std::endl;
+		}
+
+		last_hotkey_states[key] = current_hotkey_state;
+	}
+}
+
 // Function to convert FVector to vector3
 vector3 ConvertFVectorToVector3(const FVector& fvec) {
 	return vector3{ static_cast<float>(fvec.X), static_cast<float>(fvec.Y), static_cast<float>(fvec.Z) };
@@ -265,6 +363,8 @@ static void cache_useful() {
 static void render_callback() {
 	std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
+	HandleHotkeys();
+
 	menu::draw();
 	radar::draw();
 
@@ -311,6 +411,198 @@ static void render_callback() {
 
 	auto hand_item = local_mec->get_hand_item();
 	auto melee_item_data = (u_data_melee*)hand_item;
+
+	//Custom Spawn Hotkeys
+
+	// Hotkeys for equipping weapons
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('1') & 0x8000)) {
+		SetItemInHand("REVOLVER");
+		std::cout << "[Hotkey] SHIFT + 1 pressed. REVOLVER equipped in hand." << std::endl;
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('2') & 0x8000)) {
+		SetItemInHand("SHORTY");
+		std::cout << "[Hotkey] SHIFT + 2 pressed. SHORTY equipped in hand." << std::endl;
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('3') & 0x8000)) {
+		SetItemInHand("PISTOL");
+		std::cout << "[Hotkey] SHIFT + 3 pressed. PISTOL equipped in hand." << std::endl;
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('4') & 0x8000)) {
+		SetItemInHand("RIFLE");
+		std::cout << "[Hotkey] SHIFT + 4 pressed. RIFLE equipped in hand." << std::endl;
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('5') & 0x8000)) {
+		SetItemInHand("SHOTGUN");
+		std::cout << "[Hotkey] SHIFT + 5 pressed. SHOTGUN equipped in hand." << std::endl;
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('6') & 0x8000)) {
+		SetItemInHand("SMG");
+		std::cout << "[Hotkey] SHIFT + 6 pressed. SMG equipped in hand." << std::endl;
+	}
+
+
+	// SHIFT + Letter Hotkeys
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('K') & 0x8000)) {
+		std::cout << "[Hotkey] SHIFT + K pressed. Attempting to spawn KNIFE." << std::endl;
+		auto item_data = AssignToItemData("KNIFE");
+		if (item_data) {
+			local_mec->set_hand_item(item_data);
+			std::cout << "[Hotkey] KNIFE equipped in hand." << std::endl;
+		}
+		else {
+			std::cerr << "[Hotkey] Failed to retrieve KNIFE data. Item not spawned." << std::endl;
+		}
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('B') & 0x8000)) {
+		std::cout << "[Hotkey] SHIFT + B pressed. Attempting to spawn C4." << std::endl;
+		auto item_data = AssignToItemData("C4");
+		if (item_data) {
+			local_mec->set_hand_item(item_data);
+			std::cout << "[Hotkey] C4 equipped in hand." << std::endl;
+		}
+		else {
+			std::cerr << "[Hotkey] Failed to retrieve C4 data. Item not spawned." << std::endl;
+		}
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('N') & 0x8000)) {
+		std::cout << "[Hotkey] SHIFT + N pressed. Attempting to spawn DETONATOR." << std::endl;
+		auto item_data = AssignToItemData("DETONATOR");
+		if (item_data) {
+			local_mec->set_hand_item(item_data);
+			std::cout << "[Hotkey] DETONATOR equipped in hand." << std::endl;
+		}
+		else {
+			std::cerr << "[Hotkey] Failed to retrieve DETONATOR data. Item not spawned." << std::endl;
+		}
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('L') & 0x8000)) {
+		std::cout << "[Hotkey] SHIFT + L pressed. Attempting to spawn FUSE." << std::endl;
+		auto item_data = AssignToItemData("FUSE");
+		if (item_data) {
+			local_mec->set_hand_item(item_data);
+			std::cout << "[Hotkey] FUSE equipped in hand." << std::endl;
+		}
+		else {
+			std::cerr << "[Hotkey] Failed to retrieve FUSE data. Item not spawned." << std::endl;
+		}
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('J') & 0x8000)) {
+		std::cout << "[Hotkey] SHIFT + J pressed. Attempting to spawn BATTERY." << std::endl;
+		auto item_data = AssignToItemData("BATTERY");
+		if (item_data) {
+			local_mec->set_hand_item(item_data);
+			std::cout << "[Hotkey] BATTERY equipped in hand." << std::endl;
+		}
+		else {
+			std::cerr << "[Hotkey] Failed to retrieve BATTERY data. Item not spawned." << std::endl;
+		}
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('G') & 0x8000)) {
+		std::cout << "[Hotkey] SHIFT + G pressed. Attempting to spawn GAZ BOTTLE." << std::endl;
+		auto item_data = AssignToItemData("GAZ BOTTLE");
+		if (item_data) {
+			local_mec->set_hand_item(item_data);
+			std::cout << "[Hotkey] GAZ BOTTLE equipped in hand." << std::endl;
+		}
+		else {
+			std::cerr << "[Hotkey] Failed to retrieve GAZ BOTTLE data. Item not spawned." << std::endl;
+		}
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('V') & 0x8000)) {
+		std::cout << "[Hotkey] SHIFT + V pressed. Attempting to spawn VENT." << std::endl;
+		auto item_data = AssignToItemData("VENT");
+		if (item_data) {
+			local_mec->set_hand_item(item_data);
+			std::cout << "[Hotkey] VENT equipped in hand." << std::endl;
+		}
+		else {
+			std::cerr << "[Hotkey] Failed to retrieve VENT data. Item not spawned." << std::endl;
+		}
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('Y') & 0x8000)) {
+		std::cout << "[Hotkey] SHIFT + Y pressed. Attempting to spawn SCREW DRIVER." << std::endl;
+		auto item_data = AssignToItemData("SCREW DRIVER");
+		if (item_data) {
+			local_mec->set_hand_item(item_data);
+			std::cout << "[Hotkey] SCREW DRIVER equipped in hand." << std::endl;
+		}
+		else {
+			std::cerr << "[Hotkey] Failed to retrieve SCREW DRIVER data. Item not spawned." << std::endl;
+		}
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('C') & 0x8000)) {
+		std::cout << "[Hotkey] SHIFT + C pressed. Attempting to spawn CONTAINER." << std::endl;
+		auto item_data = AssignToItemData("CONTAINER");
+		if (item_data) {
+			local_mec->set_hand_item(item_data);
+			std::cout << "[Hotkey] CONTAINER equipped in hand." << std::endl;
+		}
+		else {
+			std::cerr << "[Hotkey] Failed to retrieve CONTAINER data. Item not spawned." << std::endl;
+		}
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('P') & 0x8000)) {
+		std::cout << "[Hotkey] SHIFT + P pressed. Attempting to spawn PIZZUSHI." << std::endl;
+		auto item_data = AssignToItemData("PIZZUSHI");
+		if (item_data) {
+			local_mec->set_hand_item(item_data);
+			std::cout << "[Hotkey] PIZZUSHI equipped in hand." << std::endl;
+		}
+		else {
+			std::cerr << "[Hotkey] Failed to retrieve PIZZUSHI data. Item not spawned." << std::endl;
+		}
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('7') & 0x8000)) {
+		std::cout << "[Hotkey] Shift + 7 pressed. Attempting to spawn SAMPLE." << std::endl;
+		auto item_data = AssignToItemData("SAMPLE");
+		if (item_data) {
+			local_mec->set_hand_item(item_data);
+			std::cout << "[Hotkey] SAMPLE equipped in hand." << std::endl;
+		}
+		else {
+			std::cerr << "[Hotkey] Failed to retrieve SAMPLE data. Item not spawned." << std::endl;
+		}
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('8') & 0x8000)) {
+		std::cout << "[Hotkey] Shift + 8 pressed. Attempting to spawn RICE." << std::endl;
+		auto item_data = AssignToItemData("RICE");
+		if (item_data) {
+			local_mec->set_hand_item(item_data);
+			std::cout << "[Hotkey] RICE equipped in hand." << std::endl;
+		}
+		else {
+			std::cerr << "[Hotkey] Failed to retrieve RICE data. Item not spawned." << std::endl;
+		}
+	}
+
+	if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && (GetAsyncKeyState('9') & 0x8000)) {
+		std::cout << "[Hotkey] Shift + 9 pressed. Attempting to spawn PACKAGE." << std::endl;
+		auto item_data = AssignToItemData("PACKAGE");
+		if (item_data) {
+			local_mec->set_hand_item(item_data);
+			std::cout << "[Hotkey] PACKAGE equipped in hand." << std::endl;
+		}
+		else {
+			std::cerr << "[Hotkey] Failed to retrieve PACKAGE data. Item not spawned." << std::endl;
+		}
+	}
+	// Hotkeys made by Jester
 
 	//if (hand_item) {
 	//    auto mtype = melee_item_data->get_melee_type();
